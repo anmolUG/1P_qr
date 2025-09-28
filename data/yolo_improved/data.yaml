@@ -1,0 +1,15 @@
+# Improved QR Detection Dataset
+path: C:\Users\Dell\Desktop\1P\data\yolo_improved
+train: train/images
+val: val/images
+
+# Classes
+nc: 1
+names: ['qr_code']
+
+# Training statistics
+train_images: 160
+train_qr_codes: 510
+val_images: 40
+val_qr_codes: 114
+avg_qr_per_image: 3.12

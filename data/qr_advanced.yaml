@@ -1,0 +1,11 @@
+anchor_t: 4.0
+cls_weight: 1.0
+label_smoothing: 0.1
+names:
+- qr_code
+nc: 1
+obj_weight: 1.0
+path: C:\Users\Dell\Desktop\1P\data
+test: test_images
+train: train_images
+val: train_images
