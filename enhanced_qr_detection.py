@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Inference script for QR code detection and decoding
+Enhanced QR Detection System with Multi-Threshold Fusion
+This system uses multiple confidence thresholds and IoU-based duplicate removal 
+to maximize detection recall while maintaining accuracy.
 """
 
 import os
@@ -9,6 +11,8 @@ import argparse
 from pathlib import Path
 import json
 import logging
+import cv2
+import numpy as np
 
 # Add src to path
 sys.path.append(str(Path(__file__).parent / "src"))
@@ -27,7 +31,7 @@ except ImportError as e:
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class QRInference:
+class EnhancedQRDetector:
     def __init__(self, model_path: str = None):
         self.detector = QRDetector(device='cpu')
         
@@ -93,12 +97,12 @@ class QRInference:
         except Exception:
             return 0
     
-    def remove_duplicate_detections(self, detections: list, iou_threshold: float = 0.5) -> list:
+    def remove_duplicate_detections(self, detections: list, iou_threshold: float = 0.3) -> list:
         """
-        Remove duplicate detections using IoU-based filtering
+        Remove duplicate detections using IoU-based filtering with confidence prioritization
         
         Args:
-            detections: List of detection dictionaries
+            detections: List of detection dictionaries with 'bbox' and 'confidence' keys
             iou_threshold: IoU threshold for considering detections as duplicates
             
         Returns:
@@ -107,7 +111,7 @@ class QRInference:
         if not detections:
             return []
         
-        # Sort by confidence if available, otherwise keep original order
+        # Sort by confidence in descending order (highest confidence first)
         sorted_detections = sorted(detections, 
                                  key=lambda x: x.get('confidence', 0.5), 
                                  reverse=True)
@@ -118,6 +122,7 @@ class QRInference:
             current_bbox = current_det['bbox']
             is_duplicate = False
             
+            # Check against all previously accepted detections
             for unique_det in unique_detections:
                 unique_bbox = unique_det['bbox']
                 iou = self.calculate_iou(current_bbox, unique_bbox)
@@ -131,111 +136,17 @@ class QRInference:
         
         return unique_detections
     
-    def filter_false_positives(self, detections: list, image) -> list:
+    def detect_qr_codes_enhanced(self, image_path: str) -> list:
         """
-        Apply additional filtering to remove potential false positives based on geometric constraints.
-        Uses relaxed parameters to maintain detection count closer to proven system.
-        
-        Args:
-            detections: List of detection dictionaries
-            image: The image being processed
-            
-        Returns:
-            List of filtered detections with reduced false positives
-        """
-        if not detections:
-            return []
-        
-        filtered_detections = []
-        image_height, image_width = image.shape[:2]
-        
-        for detection in detections:
-            bbox = detection['bbox']
-            x_min, y_min, x_max, y_max = bbox
-            
-            # Calculate dimensions
-            width = x_max - x_min
-            height = y_max - y_min
-            
-            # Filter out detections that are too small (relaxed threshold)
-            if width < 15 or height < 15:
-                continue
-            
-            # Filter out detections that are too large (relaxed threshold)
-            if width > image_width * 0.9 or height > image_height * 0.9:
-                continue
-            
-            # Check aspect ratio (QR codes should be roughly square, relaxed constraint)
-            aspect_ratio = width / height
-            if aspect_ratio < 0.4 or aspect_ratio > 2.5:
-                continue
-            
-            # Filter out detections near image boundaries (relaxed margin)
-            boundary_margin = 5
-            if (x_min < boundary_margin or y_min < boundary_margin or 
-                x_max > image_width - boundary_margin or y_max > image_height - boundary_margin):
-                # Only filter boundary detections with lower confidence
-                if detection.get('confidence', 0.5) < 0.5:
-                    continue
-            
-            filtered_detections.append(detection)
-        
-        return filtered_detections
-    
-    def filter_minimal_false_positives(self, detections: list, image) -> list:
-        """
-        Apply minimal filtering to remove only the most obvious false positives.
-        
-        Args:
-            detections: List of detection dictionaries
-            image: The image being processed
-            
-        Returns:
-            List of filtered detections with minimal false positive removal
-        """
-        if not detections:
-            return []
-        
-        filtered_detections = []
-        image_height, image_width = image.shape[:2]
-        
-        for detection in detections:
-            bbox = detection['bbox']
-            x_min, y_min, x_max, y_max = bbox
-            
-            # Calculate dimensions
-            width = x_max - x_min
-            height = y_max - y_min
-            
-            # Filter out extremely small detections (likely noise)
-            if width < 10 or height < 10:
-                continue
-            
-            # Filter out extremely large detections (likely false positives)
-            if width > image_width * 0.95 or height > image_height * 0.95:
-                continue
-            
-            # Filter out detections that are completely at image corners (common artifacts)
-            corner_margin = 3
-            if ((x_min < corner_margin and y_min < corner_margin) or
-                (x_max > image_width - corner_margin and y_min < corner_margin) or
-                (x_min < corner_margin and y_max > image_height - corner_margin) or
-                (x_max > image_width - corner_margin and y_max > image_height - corner_margin)):
-                # Only filter corner detections with very low confidence
-                if detection.get('confidence', 0.5) < 0.4:
-                    continue
-            
-            filtered_detections.append(detection)
-        
-        return filtered_detections
-    
-    def detect_qr_codes(self, image_path: str) -> list:
-        """
-        Multi-strategy QR detection approach to capture maximum QR codes.
-        Combines multiple detection passes with different parameters and consolidates results.
+        Enhanced QR detection using multi-threshold strategy for maximum coverage
+        Implements the multi-threshold detection fusion approach:
+        - Strategy 1: High confidence (0.3) for reliable detections
+        - Strategy 2: Medium confidence (0.15) for potentially missed QRs
+        - Strategy 3: Low confidence (0.1) for aggressive detection
+        - Strategy 4: Very low confidence (0.05) for edge cases
+        - Combined with conservative IoU-based duplicate removal (0.3 threshold)
         """
         try:
-            import cv2
             # Read image
             image = cv2.imread(image_path)
             if image is None:
@@ -244,93 +155,91 @@ class QRInference:
             
             all_detections = []
             
-            # Strategy 1: Balanced detection (proven parameters)
-            results1 = self.detector.predict(image, conf=0.25, iou=0.4, verbose=False)
+            # Strategy 1: High confidence baseline (proven system parameters)
+            logger.debug("Running detection strategy 1 (conf=0.3, iou=0.45)")
+            results1 = self.detector.predict(image, conf=0.3, iou=0.45, verbose=False)
             if results1 and len(results1) > 0:
                 detections1 = results1[0].get('detections', [])
                 all_detections.extend(detections1)
+                logger.debug(f"Strategy 1 found {len(detections1)} detections")
             
-            # Strategy 2: Sensitive detection (lower confidence)
-            results2 = self.detector.predict(image, conf=0.18, iou=0.35, verbose=False)
+            # Strategy 2: Medium confidence for missed QRs
+            logger.debug("Running detection strategy 2 (conf=0.15, iou=0.4)")
+            results2 = self.detector.predict(image, conf=0.15, iou=0.4, verbose=False)
             if results2 and len(results2) > 0:
                 detections2 = results2[0].get('detections', [])
                 all_detections.extend(detections2)
+                logger.debug(f"Strategy 2 found {len(detections2)} detections")
             
-            # Strategy 3: Very sensitive detection (lowest confidence)
-            results3 = self.detector.predict(image, conf=0.15, iou=0.3, verbose=False)
+            # Strategy 3: Low confidence aggressive detection
+            logger.debug("Running detection strategy 3 (conf=0.1, iou=0.3)")
+            results3 = self.detector.predict(image, conf=0.1, iou=0.3, verbose=False)
             if results3 and len(results3) > 0:
                 detections3 = results3[0].get('detections', [])
                 all_detections.extend(detections3)
+                logger.debug(f"Strategy 3 found {len(detections3)} detections")
             
-            # Remove duplicates with moderate threshold to consolidate results
-            unique_detections = self.remove_duplicate_detections(all_detections, iou_threshold=0.35)
+            # Strategy 4: Very low confidence for edge cases
+            logger.debug("Running detection strategy 4 (conf=0.05, iou=0.25)")
+            results4 = self.detector.predict(image, conf=0.05, iou=0.25, verbose=False)
+            if results4 and len(results4) > 0:
+                detections4 = results4[0].get('detections', [])
+                all_detections.extend(detections4)
+                logger.debug(f"Strategy 4 found {len(detections4)} detections")
             
-            # Apply minimal filtering to remove obvious false positives
-            filtered_detections = self.filter_minimal_false_positives(unique_detections, image)
-            logger.debug(f"Multi-strategy detection found {len(filtered_detections)} QR codes in {Path(image_path).name}")
-            return filtered_detections
+            # Remove duplicates with conservative threshold to minimize false positives
+            unique_detections = self.remove_duplicate_detections(all_detections, iou_threshold=0.3)
+            logger.debug(f"Combined: {len(all_detections)} raw detections -> {len(unique_detections)} unique detections")
+            
+            return unique_detections
+            
         except Exception as e:
-            logger.error(f"Detection failed for {image_path}: {e}")
+            logger.error(f"Enhanced detection failed for {image_path}: {e}")
             return []
     
-    def decode_qr_codes(self, image_path: str, detections: list) -> list:
-        """Decode detected QR codes"""
-        if not detections:
-            return []
-        
+    def detect_qr_codes_baseline(self, image_path: str) -> list:
+        """Baseline detection method (single threshold)"""
         try:
-            import cv2
             # Read image
             image = cv2.imread(image_path)
             if image is None:
+                logger.error(f"Could not read image: {image_path}")
                 return []
             
-            # Convert to RGB for decoder
-            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            # Use the proven detection method
+            results = self.detector.predict(image, conf=0.3, iou=0.45, verbose=False)
             
-            decoded_results = []
-            
-            for detection in detections:
-                bbox = detection['bbox']
+            if results and len(results) > 0:
+                detections = results[0].get('detections', [])
+                logger.debug(f"Baseline detected {len(detections)} QR codes in {Path(image_path).name}")
+                return detections
+            else:
+                logger.debug(f"No QR codes detected in {Path(image_path).name}")
+                return []
                 
-                # Decode QR code
-                decoded_value = self.decoder.decode_qr_from_region(image_rgb, bbox, enhance=True)
-                
-                # Create result
-                qr_result = {
-                    "bbox": bbox,
-                    "value": decoded_value.strip() if decoded_value else "",
-                }
-                
-                decoded_results.append(qr_result)
-            
-            return decoded_results
-            
         except Exception as e:
-            logger.error(f"Decoding failed for {image_path}: {e}")
-            # Return detections without decoding
-            return [{"bbox": det["bbox"], "value": ""} for det in detections]
+            logger.error(f"Baseline detection failed for {image_path}: {e}")
+            return []
     
-    def process_single_image(self, image_path: str, decode: bool = False) -> dict:
-        """Process a single image for QR detection and optional decoding"""
+    def process_single_image(self, image_path: str, use_enhanced: bool = True) -> dict:
+        """Process a single image for QR detection"""
         image_id = Path(image_path).stem
         
         # Detect QR codes
-        detections = self.detect_qr_codes(image_path)
-        
-        if decode and detections:
-            # Decode QR codes
-            qr_results = self.decode_qr_codes(image_path, detections)
+        if use_enhanced:
+            detections = self.detect_qr_codes_enhanced(image_path)
         else:
-            # Detection only
-            qr_results = [{"bbox": det["bbox"]} for det in detections]
+            detections = self.detect_qr_codes_baseline(image_path)
+        
+        # Return detection-only results
+        qr_results = [{"bbox": det["bbox"]} for det in detections]
         
         return {
             "image_id": image_id,
             "qrs": qr_results
         }
     
-    def process_directory(self, input_dir: str, output_file: str, decode: bool = False) -> dict:
+    def process_directory(self, input_dir: str, output_file: str, use_enhanced: bool = True) -> dict:
         """Process all images in a directory"""
         input_path = Path(input_dir)
         if not input_path.exists() or not input_path.is_dir():
@@ -351,7 +260,7 @@ class QRInference:
             logger.warning(f"No image files found in {input_dir}")
             return {"total_images": 0, "total_qrs": 0}
         
-        logger.info(f"Processing {len(image_files)} images...")
+        logger.info(f"Processing {len(image_files)} images with {'enhanced' if use_enhanced else 'baseline'} method...")
         
         # Process images
         results = []
@@ -359,7 +268,7 @@ class QRInference:
         
         for image_file in image_files:
             try:
-                result = self.process_single_image(str(image_file), decode=decode)
+                result = self.process_single_image(str(image_file), use_enhanced=use_enhanced)
                 results.append(result)
                 
                 # Update statistics
@@ -398,34 +307,34 @@ class QRInference:
         return stats
 
 def main():
-    parser = argparse.ArgumentParser(description="QR Code Detection and Decoding")
+    parser = argparse.ArgumentParser(description="Enhanced QR Code Detection System")
     parser.add_argument("--input", "-i", required=True, 
                        help="Input directory containing images")
     parser.add_argument("--output", "-o", required=True,
                        help="Output JSON file path")
-    parser.add_argument("--decode", action="store_true",
-                       help="Enable QR code decoding")
+    parser.add_argument("--baseline", action="store_true",
+                       help="Use baseline detection (single threshold) instead of enhanced method")
     parser.add_argument("--model", "-m", 
                        help="Path to trained model weights")
     
     args = parser.parse_args()
     
-    logger.info("🚀 QR Detection and Decoding Pipeline")
+    logger.info("🚀 Enhanced QR Detection System")
     logger.info("=" * 50)
     
     try:
-        # Initialize inference pipeline
-        inference = QRInference(model_path=args.model)
+        # Initialize enhanced detector
+        detector = EnhancedQRDetector(model_path=args.model)
         
         # Process images
         logger.info(f"Input directory: {args.input}")
         logger.info(f"Output file: {args.output}")
-        logger.info(f"Decode mode: {'ON' if args.decode else 'OFF'}")
+        logger.info(f"Detection method: {'BASELINE' if args.baseline else 'ENHANCED'}")
         
-        stats = inference.process_directory(
+        stats = detector.process_directory(
             input_dir=args.input,
             output_file=args.output,
-            decode=args.decode
+            use_enhanced=not args.baseline
         )
         
         # Print final statistics
