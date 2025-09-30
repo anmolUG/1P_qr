@@ -36,6 +36,17 @@ def visualize_detections(image_dir, json_file, output_dir):
     
     # Process each image
     processed_count = 0
+    
+    # Import tqdm for progress bar
+    try:
+        from tqdm import tqdm
+        progress_bar = tqdm(total=len(results), desc="Generating Visualizations", unit="image",
+                          bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
+    except ImportError:
+        # Fallback to simple logging if tqdm is not available
+        progress_bar = None
+        logger.info("Generating visualizations... (install tqdm for a progress bar)")
+    
     for item in results:
         image_id = item['image_id']
         qrs = item['qrs']
@@ -58,6 +69,8 @@ def visualize_detections(image_dir, json_file, output_dir):
         
         if image_path is None:
             logger.warning(f"Image file not found for {image_id}")
+            if progress_bar is not None:
+                progress_bar.update(1)
             continue
         
         # Load image
@@ -65,35 +78,70 @@ def visualize_detections(image_dir, json_file, output_dir):
             image = cv2.imread(str(image_path))
             if image is None:
                 logger.warning(f"Could not load image: {image_path}")
+                if progress_bar is not None:
+                    progress_bar.update(1)
                 continue
         except Exception as e:
             logger.warning(f"Error loading image {image_path}: {e}")
+            if progress_bar is not None:
+                progress_bar.update(1)
             continue
         
-        # Draw bounding boxes
+        # Draw bounding boxes with enhanced visualization
         qr_count = 0
         for qr in qrs:
             if 'bbox' in qr:
                 bbox = qr['bbox']
                 x_min, y_min, x_max, y_max = bbox
                 
-                # Draw red rectangle
-                cv2.rectangle(image, (x_min, y_min), (x_max, y_max), (0, 0, 255), 2)
+                # Draw bold red rectangle (thicker border)
+                cv2.rectangle(image, (x_min, y_min), (x_max, y_max), (0, 0, 255), 3)
                 
-                # Add QR number label in red
+                # Add QR number label in bold red with background
                 qr_count += 1
                 label = f"QR {qr_count}"
-                cv2.putText(image, label, (x_min, y_min - 10), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                
+                # Get text size for background rectangle
+                (text_width, text_height), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+                
+                # Draw background rectangle for text
+                cv2.rectangle(image, (x_min, y_min - text_height - 10), 
+                             (x_min + text_width, y_min), (0, 0, 255), -1)
+                
+                # Draw text
+                cv2.putText(image, label, (x_min, y_min - 5), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                
+                # Add bounding box coordinates at corners
+                # Top-left corner
+                coord_text = f"({x_min},{y_min})"
+                cv2.putText(image, coord_text, (x_min, y_min + text_height + 15), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                
+                # Bottom-right corner
+                coord_text = f"({x_max},{y_max})"
+                (coord_width, coord_height), _ = cv2.getTextSize(coord_text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+                cv2.putText(image, coord_text, (x_max - coord_width, y_max - 5), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
         
         # Save visualization
         output_path = Path(output_dir) / f"{image_id}_detections.jpg"
         try:
             cv2.imwrite(str(output_path), image)
-            logger.debug(f"Saved visualization for {image_id} with {qr_count} QR codes")
+            if progress_bar is not None:
+                progress_bar.set_postfix({"Processed": processed_count + 1, "QRs": qr_count})
+                progress_bar.update(1)
+            else:
+                logger.debug(f"Saved visualization for {image_id} with {qr_count} QR codes")
             processed_count += 1
         except Exception as e:
             logger.error(f"Failed to save visualization for {image_id}: {e}")
+            if progress_bar is not None:
+                progress_bar.update(1)
+    
+    # Close progress bar if used
+    if progress_bar is not None:
+        progress_bar.close()
     
     logger.info(f"Processed {processed_count} images. Visualizations saved to {output_dir}")
 
@@ -108,12 +156,12 @@ def main():
     
     args = parser.parse_args()
     
-    logger.info("🚀 QR Detection Visualization")
+    logger.info("QR Detection Visualization")
     logger.info("=" * 40)
     
     visualize_detections(args.input, args.json, args.output)
     
-    logger.info("🎉 Visualization completed!")
+    logger.info("Visualization completed!")
 
 if __name__ == "__main__":
     main()

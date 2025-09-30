@@ -357,7 +357,17 @@ class QRInference:
         results = []
         total_qrs = 0
         
-        for image_file in image_files:
+        # Import tqdm for progress bar
+        try:
+            from tqdm import tqdm
+            progress_bar = tqdm(total=len(image_files), desc="Processing", unit="image", 
+                              bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
+        except ImportError:
+            # Fallback to simple logging if tqdm is not available
+            progress_bar = None
+            logger.info("Processing images... (install tqdm for a progress bar)")
+        
+        for i, image_file in enumerate(image_files):
             try:
                 result = self.process_single_image(str(image_file), decode=decode)
                 results.append(result)
@@ -366,8 +376,13 @@ class QRInference:
                 qr_count = len(result["qrs"])
                 total_qrs += qr_count
                 
-                if qr_count > 0:
-                    logger.debug(f"{result['image_id']}: {qr_count} QRs")
+                # Update progress display
+                if progress_bar is not None:
+                    progress_bar.set_postfix({"QRs": total_qrs, "Current": qr_count})
+                    progress_bar.update(1)
+                else:
+                    if qr_count > 0:
+                        logger.debug(f"{result['image_id']}: {qr_count} QRs")
                 
             except Exception as e:
                 logger.error(f"Failed to process {image_file}: {e}")
@@ -376,6 +391,14 @@ class QRInference:
                     "image_id": image_file.stem,
                     "qrs": []
                 })
+                # Update progress display even on error
+                if progress_bar is not None:
+                    progress_bar.set_postfix({"QRs": total_qrs, "Current": 0, "Errors": 1})
+                    progress_bar.update(1)
+        
+        # Close progress bar if used
+        if progress_bar is not None:
+            progress_bar.close()
         
         # Save results
         output_path = Path(output_file)
@@ -410,7 +433,7 @@ def main():
     
     args = parser.parse_args()
     
-    logger.info("🚀 QR Detection and Decoding Pipeline")
+    logger.info("QR Detection and Decoding Pipeline")
     logger.info("=" * 50)
     
     try:
@@ -429,14 +452,14 @@ def main():
         )
         
         # Print final statistics
-        logger.info("\n🎉 Processing completed successfully!")
-        logger.info(f"📊 Final Statistics:")
+        logger.info("\nProcessing completed successfully!")
+        logger.info("Final Statistics:")
         logger.info(f"   - Total images processed: {stats['total_images']}")
         logger.info(f"   - Images with QR codes: {stats['images_with_qrs']}")
         logger.info(f"   - Total QR codes detected: {stats['total_qrs']}")
         logger.info(f"   - Average QRs per image: {stats['average_qrs_per_image']:.2f}")
         
-        logger.info(f"\n📁 Results saved to: {args.output}")
+        logger.info(f"\nResults saved to: {args.output}")
         
     except Exception as e:
         logger.error(f"Processing failed: {e}")

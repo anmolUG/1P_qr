@@ -34,7 +34,7 @@ def visualize_detections(image_dir, results_file, output_dir, max_images=10):
     # Process results (limit to max_images)
     results_to_process = results[:max_images] if max_images else results
     
-    print(f"🎨 Visualizing {len(results_to_process)} detection results...")
+    print(f"Visualizing {len(results_to_process)} detection results...")
     
     for result in tqdm(results_to_process, desc="Creating visualizations"):
         image_id = result['image_id']
@@ -50,7 +50,7 @@ def visualize_detections(image_dir, results_file, output_dir, max_images=10):
                 break
         
         if not image_path:
-            print(f"⚠️ Image not found for {image_id}")
+            print(f"Image not found for {image_id}")
             continue
         
         # Load and display image
@@ -65,32 +65,46 @@ def visualize_detections(image_dir, results_file, output_dir, max_images=10):
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
         ax.imshow(image_rgb)
         
-        # Draw bounding boxes
+        # Draw bounding boxes with enhanced visualization
         for i, qr in enumerate(qrs):
             bbox = qr['bbox']
             x_min, y_min, x_max, y_max = bbox
             
-            # Create rectangle
+            # Create bold red rectangle
             rect = patches.Rectangle(
                 (x_min, y_min), 
                 x_max - x_min, 
                 y_max - y_min,
-                linewidth=2, 
+                linewidth=3, 
                 edgecolor='red', 
                 facecolor='none',
                 alpha=0.8
             )
             ax.add_patch(rect)
             
-            # Add QR index label
-            ax.text(x_min, y_min - 5, f'QR{i+1}', 
-                   color='red', fontsize=10, fontweight='bold',
-                   bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8))
+            # Add QR index label with background
+            label = f'QR{i+1}'
+            ax.text(x_min, y_min - 5, label, 
+                   color='white', fontsize=10, fontweight='bold',
+                   bbox=dict(boxstyle="round,pad=0.3", facecolor="red", alpha=0.8))
+            
+            # Add bounding box coordinates at corners
+            # Top-left corner
+            coord_text = f"({x_min},{y_min})"
+            ax.text(x_min, y_min + 20, coord_text, 
+                   color='green', fontsize=8, fontweight='bold',
+                   bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7))
+            
+            # Bottom-right corner
+            coord_text = f"({x_max},{y_max})"
+            ax.text(x_max - 50, y_max - 5, coord_text, 
+                   color='green', fontsize=8, fontweight='bold',
+                   bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7))
             
             # Add decoded value if available
             if 'value' in qr and qr['value']:
                 value_text = qr['value'][:20] + "..." if len(qr['value']) > 20 else qr['value']
-                ax.text(x_min, y_max + 15, value_text, 
+                ax.text(x_min, y_max + 25, value_text, 
                        color='blue', fontsize=8, fontweight='bold',
                        bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7))
         
@@ -109,8 +123,8 @@ def visualize_detections(image_dir, results_file, output_dir, max_images=10):
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
         plt.close()
     
-    print(f"✅ Visualizations saved to: {output_dir}")
-    print(f"📁 Generated {len(results_to_process)} visualization files")
+    print(f"Visualizations saved to: {output_dir}")
+    print(f"Generated {len(results_to_process)} visualization files")
 
 def analyze_results(results_file):
     """
@@ -126,23 +140,23 @@ def analyze_results(results_file):
     total_qrs = sum(len(result['qrs']) for result in results)
     images_with_qrs = sum(1 for result in results if len(result['qrs']) > 0)
     
-    print(f"\n📊 DETECTION ANALYSIS:")
-    print(f"   📸 Total images: {total_images}")
-    print(f"   📱 Total QR codes: {total_qrs}")
-    print(f"   ✅ Images with QRs: {images_with_qrs}")
-    print(f"   📈 Average QRs per image: {total_qrs/total_images:.2f}")
-    print(f"   🎯 Detection rate: {images_with_qrs/total_images*100:.1f}%")
+    print(f"\nDETECTION ANALYSIS:")
+    print(f"   Total images: {total_images}")
+    print(f"   Total QR codes: {total_qrs}")
+    print(f"   Images with QRs: {images_with_qrs}")
+    print(f"   Average QRs per image: {total_qrs/total_images:.2f}")
+    print(f"   Detection rate: {images_with_qrs/total_images*100:.1f}%")
     
     # Check if decoding results are available
     has_decoding = any('value' in qr for result in results for qr in result['qrs'])
     if has_decoding:
         decoded_qrs = sum(1 for result in results for qr in result['qrs'] if qr.get('value', ''))
-        print(f"   🔤 Decoded QRs: {decoded_qrs}")
-        print(f"   📊 Decoding success: {decoded_qrs/total_qrs*100:.1f}%")
+        print(f"   Decoded QRs: {decoded_qrs}")
+        print(f"   Decoding success: {decoded_qrs/total_qrs*100:.1f}%")
     
     # QR distribution
     qr_counts = [len(result['qrs']) for result in results]
-    print(f"   📊 QR distribution: min={min(qr_counts)}, max={max(qr_counts)}, avg={np.mean(qr_counts):.1f}")
+    print(f"   QR distribution: min={min(qr_counts)}, max={max(qr_counts)}, avg={np.mean(qr_counts):.1f}")
 
 def main():
     """Main evaluation function"""
@@ -162,23 +176,23 @@ def main():
     
     # Validate inputs
     if not os.path.exists(args.images):
-        print(f"❌ Image directory not found: {args.images}")
+        print(f"Image directory not found: {args.images}")
         return
     
     if not os.path.exists(args.results):
-        print(f"❌ Results file not found: {args.results}")
+        print(f"Results file not found: {args.results}")
         return
     
-    print(f"🔍 QR Detection Evaluation")
-    print(f"📂 Images: {args.images}")
-    print(f"📋 Results: {args.results}")
+    print(f"QR Detection Evaluation")
+    print(f"Images: {args.images}")
+    print(f"Results: {args.results}")
     
     # Analyze results
     analyze_results(args.results)
     
     # Create visualizations (unless analyze-only)
     if not args.analyze_only:
-        print(f"\n🎨 Creating visualizations...")
+        print(f"\nCreating visualizations...")
         visualize_detections(
             image_dir=args.images,
             results_file=args.results,

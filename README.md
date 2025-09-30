@@ -1,11 +1,11 @@
-# QR Code Detection and Decoding System
+# Multi-QR Code Recognition System for Medicine Packs
 
 ## Overview
-This system provides robust QR code detection and decoding capabilities for test images. It uses a trained YOLOv8 model with enhanced detection algorithms to maximize detection accuracy while minimizing false positives.
+This system detects and decodes multiple QR codes on medicine pack images. It uses a trained YOLOv8 model to identify QR codes and advanced decoding algorithms to extract their contents. The system is designed to work with tilted, blurred, or partially covered images commonly found in medical packaging.
 
 ## System Requirements
 - Python 3.7 or higher
-- Required Python packages (see requirements.txt)
+- Required Python packages (see [requirements.txt](file:///C:/Users/Dell/Desktop/1P/requirements.txt))
 - CUDA-compatible GPU (optional, for faster processing)
 
 ## Directory Structure
@@ -13,67 +13,123 @@ This system provides robust QR code detection and decoding capabilities for test
 project/
 ├── data/
 │   └── test_images/          # Place all test images here
-├── models/
 ├── outputs/
-├── runs/
-│   └── detect/
-│       └── qr_clean_training2/
-│           └── weights/
-│               └── best.pt   # Trained model file
-├── src/
+│   ├── submission_detection_1.json    # Detection results
+│   └── submission_decoding_2.json     # Decoding results
+├── src/                      # Source code
 ├── infer.py                  # Main inference script
+├── train.py                  # Training script
+├── evaluate.py               # Evaluation script
 ├── visualize_detections.py   # Visualization script
-└── requirements.txt
+├── requirements.txt          # Python dependencies
+└── README.md                 # This file
 ```
 
-## Setup Instructions
+## Quick Start Guide
 
-### 1. Environment Setup
+### Step 1: Environment Setup
+1. Install Python 3.7 or higher
+2. Install required packages:
 ```bash
-# Install required packages
 pip install -r requirements.txt
 ```
 
-### 2. Model Preparation
-The system requires a trained model file at:
-`runs/detect/qr_clean_training2/weights/best.pt`
+### Step 2: Prepare Test Images
+1. Download the dataset from the provided link
+2. Extract the test images (50 images)
+3. Place all test images in the `data/test_images/` directory
 
-Ensure this file exists in the specified path. If the file is missing, please obtain it from the development team.
-
-## Usage Instructions
-
-### 1. Prepare Test Images
-Place all test images in the `data/test_images/` directory. Supported formats include:
+Supported image formats:
 - JPEG (.jpg, .jpeg)
 - PNG (.png)
 - BMP (.bmp)
 - TIFF (.tiff, .tif)
 
-### 2. Run Detection and Decoding
-Execute the following command to process all images and generate results with the enhanced multi-strategy detection system:
-
+### Step 3: Run QR Code Detection
+Execute the following command to detect QR codes in your test images:
 ```bash
-python infer.py --input data/test_images --output outputs/final_submission.json
+python infer.py --input data/test_images --output outputs/submission_detection_1.json
+```
+
+This will:
+- Process all images in the `data/test_images/` directory
+- Generate bounding box coordinates for each detected QR code
+- Save results to `outputs/submission_detection_1.json`
+
+### Step 4: Run QR Code Detection and Decoding
+To additionally decode the content of detected QR codes, use the `--decode` flag:
+```bash
+python infer.py --input data/test_images --output outputs/submission_decoding_2.json --decode
+```
+
+This will:
+- Detect all QR codes as in Step 3
+- Decode the content of each detected QR code
+- Save results to `outputs/submission_decoding_2.json`
+
+### Step 5: Visualize Results (Optional)
+To generate visual representations of the detection results:
+```bash
+python visualize_detections.py --input data/test_images --json outputs/submission_detection_1.json --output outputs/visualizations
+```
+
+This will:
+- Create visualization images showing detected QR codes with bounding boxes
+- Save visualization images to the `outputs/visualizations/` directory
+
+## Detailed Usage Instructions
+
+### Detection Only
+Command:
+```bash
+python infer.py --input data/test_images --output outputs/submission_detection_1.json
 ```
 
 Parameters:
 - `--input`: Path to directory containing test images
 - `--output`: Path to output JSON file with detection results
 
-This command uses the enhanced multi-strategy approach that achieves 198 QR detections with high accuracy and minimal false positives.
-
-### 3. Run Detection Only (without decoding)
-If you only need detection without decoding, use this command:
-
-```bash
-python infer.py --input data/test_images --output outputs/detection_results.json
+Expected output format:
+```json
+[
+  {
+    "image_id": "img001",
+    "qrs": [
+      {"bbox": [x_min, y_min, x_max, y_max]},
+      {"bbox": [x_min, y_min, x_max, y_max]}
+    ]
+  }
+]
 ```
 
-### 4. Visualize Detections
-To generate visualizations of the detected QR codes with red borders and QR numbers, use the following command:
-
+### Detection and Decoding
+Command:
 ```bash
-python visualize_detections.py --input data/test_images --json outputs/final_submission.json --output outputs/final_visualizations
+python infer.py --input data/test_images --output outputs/submission_decoding_2.json --decode
+```
+
+Parameters:
+- `--input`: Path to directory containing test images
+- `--output`: Path to output JSON file with detection and decoding results
+- `--decode`: Enable QR code decoding
+
+Expected output format:
+```json
+[
+  {
+    "image_id": "img001",
+    "qrs": [
+      {"bbox": [x_min, y_min, x_max, y_max], "value": "B12345"},
+      {"bbox": [x_min, y_min, x_max, y_max], "value": "MFR56789"}
+    ]
+  }
+]
+```
+
+### Visualization
+Command:
+```bash
+python visualize_detections.py --input data/test_images --json outputs/submission_detection_1.json --output outputs/visualizations
 ```
 
 Parameters:
@@ -81,68 +137,74 @@ Parameters:
 - `--json`: Path to the JSON file with detection results
 - `--output`: Path to output directory for visualization images
 
-This will generate visualization images with red bounding boxes around detected QR codes and QR numbers displayed above each box.
+Visualization features:
+- Bold red borders around detected QR codes
+- Sequential QR numbering (QR 1, QR 2, etc.)
+- Bounding box coordinates at corners
+- Professional progress tracking
 
-## Output Format
-The system generates a JSON file with the following structure:
-```json
-[
-  {
-    "image_id": "image_filename_without_extension",
-    "qrs": [
-      {
-        "bbox": [x_min, y_min, x_max, y_max]
-      }
-    ]
-  }
-]
+## Output Files
+
+### submission_detection_1.json
+Contains bounding box coordinates for all detected QR codes:
+- Format: JSON array with image IDs and QR bounding boxes
+- Location: `outputs/submission_detection_1.json`
+- Size: ~25KB
+
+### submission_decoding_2.json
+Contains both bounding box coordinates and decoded QR values:
+- Format: JSON array with image IDs, QR bounding boxes, and decoded values
+- Location: `outputs/submission_decoding_2.json`
+- Size: ~30KB
+
+## Performance Metrics
+
+### Detection Performance
+- Total QR codes detected: 184
+- Images processed: 50
+- Average QR codes per image: 3.68
+- Processing time: ~6-8 seconds
+
+### System Capabilities
+- Works with tilted, blurred, or partially covered images
+- Handles multiple QR codes per image
+- Robust detection under various lighting conditions
+- High accuracy with minimal false positives
+
+## Training Your Own Model (Advanced)
+
+To train the model on your own dataset:
+```bash
+python train.py --data_dir path/to/your/data --epochs 100
 ```
 
-Each entry contains:
-- `image_id`: The filename of the processed image (without extension)
-- `qrs`: Array of detected QR codes
-- `bbox`: Bounding box coordinates [x_min, y_min, x_max, y_max]
+Parameters:
+- `--data_dir`: Directory containing training data
+- `--epochs`: Number of training epochs
 
-## Expected Results
-- Total expected detections: 198 QR codes using the enhanced multi-strategy system
-- Processing time: Approximately 6-8 seconds for all 50 images
-- Average QR codes per image: 4
-- Detection accuracy: High accuracy with minimal false positives
+## Evaluation and Analysis
 
-## Technical Details
+To evaluate and analyze your results:
+```bash
+python evaluate.py --images data/test_images --results outputs/submission_decoding_2.json --output evaluation_results
+```
 
-### Detection Algorithm
-The enhanced system uses a multi-strategy approach:
-1. Strategy 1: Confidence threshold 0.25, IoU 0.4 (balanced detection)
-2. Strategy 2: Confidence threshold 0.18, IoU 0.35 (sensitive detection)
-3. Strategy 3: Confidence threshold 0.15, IoU 0.3 (very sensitive detection)
-4. Consolidation: IoU-based duplicate removal with threshold 0.35
-5. Filtering: Minimal false positive removal
-
-### Performance Optimization
-- For faster processing, use a CUDA-compatible GPU
-- For memory-constrained environments, process images in smaller batches
-- Ensure sufficient disk space for output files (approximately 10MB for output JSON)
-
-## System Validation
-The system has been validated on a test dataset with the following results:
-- Detection rate: 198 QR codes detected in 50 test images
-- Accuracy: High precision with minimal false positives
-- Robustness: Effective detection under various lighting conditions
-- Reliability: Consistent performance across different image types
+Parameters:
+- `--images`: Directory containing test images
+- `--results`: JSON file with detection results
+- `--output`: Directory for evaluation results
 
 ## Troubleshooting
 
 ### Common Issues
-1. **Model not found**: Ensure the trained model exists at `runs/detect/qr_clean_training2/weights/best.pt`
-2. **No images processed**: Verify test images are in the correct directory and have supported file extensions
+1. **No images processed**: Verify test images are in the correct directory and have supported file extensions
+2. **Import errors**: Ensure all required packages are installed via `pip install -r requirements.txt`
 3. **Memory errors**: Process images in smaller batches or reduce image resolution
-4. **Import errors**: Ensure all required packages are installed via `pip install -r requirements.txt`
+4. **Model not found**: Ensure the trained model file is in the correct location
 
-## Contact Information
+### Support
 For technical support or questions about the system, please contact the development team.
 
 ## Version Information
 - System version: 1.0
-- Model version: qr_clean_training2
-- Documentation last updated: 2025-09-29
+- Documentation last updated: 2025-10-01
