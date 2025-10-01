@@ -1,0 +1,15 @@
+# Clean QR Detection Dataset
+path: C:\Users\Dell\Desktop\1P\data\yolo_clean
+train: train/images
+val: val/images
+
+# Classes
+nc: 1
+names: ['qr_code']
+
+# Dataset stats
+train_images: 157
+train_qr_codes: 510
+val_images: 37
+val_qr_codes: 114
+avg_qr_per_image: 3.22
