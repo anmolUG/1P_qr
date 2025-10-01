@@ -1,6 +1,4 @@
-"""
-Advanced QR Code decoding with state-of-the-art computer vision techniques
-"""
+"""Advanced QR decoding with multiple CV strategies and fallbacks."""
 
 import cv2
 import numpy as np
@@ -26,7 +24,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 class AdvancedQRDecoder:
-    """Advanced QR Code decoder with cutting-edge CV techniques"""
+    """Advanced QR decoder with multiple strategies."""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -76,7 +74,7 @@ class AdvancedQRDecoder:
         self.setup_advanced_processors()
     
     def setup_advanced_processors(self):
-        """Setup advanced image processing components"""
+        """Setup advanced image processing components."""
         
         # Create various kernels for morphological operations
         self.kernels = {
@@ -91,7 +89,7 @@ class AdvancedQRDecoder:
         self.setup_advanced_filters()
     
     def setup_advanced_filters(self):
-        """Setup advanced filtering kernels"""
+        """Setup advanced filtering kernels."""
         
         # Sobel filters for edge detection
         self.sobel_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
@@ -109,9 +107,7 @@ class AdvancedQRDecoder:
     
     def decode_qr_from_region(self, image: np.ndarray, bbox: List[int], 
                              enhance: bool = True) -> Optional[str]:
-        """
-        Advanced QR code decoding with state-of-the-art techniques
-        """
+        """Decode a QR from bbox using advanced multi-stage pipeline."""
         try:
             x_min, y_min, x_max, y_max = bbox
             
@@ -160,7 +156,7 @@ class AdvancedQRDecoder:
             return None
     
     def calculate_adaptive_padding(self, bbox: List[int]) -> int:
-        """Calculate adaptive padding based on QR code size"""
+        """Calculate adaptive padding based on QR size."""
         width = bbox[2] - bbox[0]
         height = bbox[3] - bbox[1]
         avg_size = (width + height) // 2
@@ -175,7 +171,7 @@ class AdvancedQRDecoder:
             return 10
     
     def direct_opencv_decode(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Direct OpenCV decoding with multiple attempts"""
+        """Direct OpenCV decoding with multiple attempts."""
         detector = cv2.QRCodeDetector()
         
         # Try multiple color spaces
@@ -211,7 +207,7 @@ class AdvancedQRDecoder:
         return None
     
     def advanced_preprocessing_decode(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Advanced preprocessing with multiple enhancement techniques"""
+        """Advanced preprocessing with multiple enhancement techniques."""
         gray = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2GRAY)
         
         # Advanced preprocessing pipeline
@@ -252,7 +248,7 @@ class AdvancedQRDecoder:
         return None
     
     def apply_non_local_means_denoising(self, image: np.ndarray) -> np.ndarray:
-        """Apply non-local means denoising"""
+        """Apply non-local means denoising."""
         try:
             # Use scikit-image for better NLM denoising
             denoised = denoise_nl_means(image, patch_size=5, patch_distance=6, h=0.1)
@@ -262,11 +258,11 @@ class AdvancedQRDecoder:
             return cv2.fastNlMeansDenoising(image)
     
     def apply_bilateral_filtering(self, image: np.ndarray) -> np.ndarray:
-        """Apply bilateral filtering for edge-preserving smoothing"""
+        """Apply bilateral filtering for edge-preserving smoothing."""
         return cv2.bilateralFilter(image, 9, 75, 75)
     
     def apply_guided_filter(self, image: np.ndarray) -> np.ndarray:
-        """Apply guided filter (approximation using multiple bilateral filters)"""
+        """Apply guided filter approximation via repeated bilateral filters."""
         # Simulate guided filter with bilateral filtering
         filtered = image.copy()
         for _ in range(3):
@@ -274,7 +270,7 @@ class AdvancedQRDecoder:
         return filtered
     
     def apply_adaptive_histogram_equalization(self, image: np.ndarray) -> np.ndarray:
-        """Apply CLAHE with multiple configurations"""
+        """Apply CLAHE with multiple configurations."""
         best_result = image
         
         clahe_configs = [
@@ -297,12 +293,12 @@ class AdvancedQRDecoder:
         return best_result
     
     def apply_contrast_stretching(self, image: np.ndarray) -> np.ndarray:
-        """Apply contrast stretching"""
+        """Apply contrast stretching."""
         p2, p98 = np.percentile(image, (2, 98))
         return np.clip((image - p2) * 255 / (p98 - p2), 0, 255).astype(np.uint8)
     
     def apply_gamma_correction_variants(self, image: np.ndarray) -> np.ndarray:
-        """Apply multiple gamma corrections and return best"""
+        """Apply multiple gamma corrections and return best."""
         gamma_values = [0.3, 0.5, 0.7, 1.3, 1.7, 2.0]
         best_result = image
         best_std = np.std(image)
@@ -325,17 +321,17 @@ class AdvancedQRDecoder:
         return best_result
     
     def apply_unsharp_masking(self, image: np.ndarray) -> np.ndarray:
-        """Apply unsharp masking for edge enhancement"""
+        """Apply unsharp masking for edge enhancement."""
         gaussian = cv2.GaussianBlur(image, (9, 9), 2.0)
         unsharp = cv2.addWeighted(image, 1.5, gaussian, -0.5, 0)
         return np.clip(unsharp, 0, 255).astype(np.uint8)
     
     def apply_edge_preserving_smoothing(self, image: np.ndarray) -> np.ndarray:
-        """Apply edge-preserving smoothing"""
+        """Apply edge-preserving smoothing."""
         return cv2.edgePreservingFilter(image, flags=2, sigma_s=50, sigma_r=0.4)
     
     def apply_frequency_enhancement(self, image: np.ndarray) -> np.ndarray:
-        """Apply frequency domain enhancement"""
+        """Apply frequency domain enhancement."""
         try:
             # FFT-based enhancement
             f_transform = np.fft.fft2(image)
@@ -369,7 +365,7 @@ class AdvancedQRDecoder:
             return image
     
     def apply_multi_otsu_thresholding(self, image: np.ndarray) -> np.ndarray:
-        """Apply multi-level Otsu thresholding"""
+        """Apply multi-level Otsu thresholding."""
         try:
             if SKIMAGE_AVAILABLE:
                 from skimage.filters import threshold_multiotsu
@@ -387,7 +383,7 @@ class AdvancedQRDecoder:
             return binary
     
     def apply_local_adaptive_thresholding(self, image: np.ndarray) -> np.ndarray:
-        """Apply local adaptive thresholding with multiple parameters"""
+        """Apply local adaptive thresholding with multiple parameters."""
         block_sizes = [11, 15, 19, 25]
         C_values = [2, 5, 8, 11]
         
@@ -416,7 +412,7 @@ class AdvancedQRDecoder:
         return best_result if best_result is not None else image
     
     def multi_scale_decode(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Multi-scale decoding with comprehensive scaling and interpolation"""
+        """Multi-scale decoding with scaling and interpolation variants."""
         
         # Comprehensive scaling factors
         scales = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0]
@@ -460,7 +456,7 @@ class AdvancedQRDecoder:
         return None
     
     def extreme_recovery_decode(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Extreme recovery techniques for heavily damaged QR codes"""
+        """Extreme recovery techniques for damaged QRs."""
         try:
             gray = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2GRAY)
             
@@ -497,7 +493,7 @@ class AdvancedQRDecoder:
             return None
     
     def classify_qr_content(self, content: str) -> str:
-        """Classify QR content based on patterns"""
+        """Classify QR content based on patterns."""
         if not content:
             return "unknown"
         
@@ -523,7 +519,7 @@ class AdvancedQRDecoder:
     
     # Additional utility methods for completeness
     def validate_qr_content(self, content: str) -> bool:
-        """Validate if decoded content looks like valid QR content"""
+        """Validate decoded content heuristically."""
         if not content or len(content.strip()) < 3:
             return False
         
@@ -555,7 +551,7 @@ class AdvancedQRDecoder:
             return False
     
     def perspective_correction_decode(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Advanced perspective correction and decoding"""
+        """Advanced perspective correction and decoding."""
         
         gray = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2GRAY)
         
@@ -617,7 +613,7 @@ class AdvancedQRDecoder:
         return None
     
     def sort_corners(self, corners: np.ndarray) -> np.ndarray:
-        """Sort corners in clockwise order starting from top-left"""
+        """Sort corners clockwise starting from top-left."""
         # Calculate center
         center = np.mean(corners, axis=0)
         
@@ -629,7 +625,7 @@ class AdvancedQRDecoder:
         return corners[sorted_indices]
     
     def frequency_domain_decode(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Frequency domain enhancement and decoding"""
+        """Frequency domain enhancement and decoding."""
         
         gray = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2GRAY)
         
@@ -660,7 +656,7 @@ class AdvancedQRDecoder:
         return None
     
     def apply_high_pass_filter(self, image: np.ndarray) -> np.ndarray:
-        """Apply high-pass filter in frequency domain"""
+        """Apply high-pass filter in frequency domain."""
         f_transform = np.fft.fft2(image)
         f_shift = np.fft.fftshift(f_transform)
         
@@ -683,7 +679,7 @@ class AdvancedQRDecoder:
         return np.clip(img_back, 0, 255).astype(np.uint8)
     
     def apply_low_pass_filter(self, image: np.ndarray) -> np.ndarray:
-        """Apply low-pass filter in frequency domain"""
+        """Apply low-pass filter in frequency domain."""
         f_transform = np.fft.fft2(image)
         f_shift = np.fft.fftshift(f_transform)
         
@@ -706,7 +702,7 @@ class AdvancedQRDecoder:
         return np.clip(img_back, 0, 255).astype(np.uint8)
     
     def apply_band_pass_filter(self, image: np.ndarray) -> np.ndarray:
-        """Apply band-pass filter in frequency domain"""
+        """Apply band-pass filter in frequency domain."""
         # Combine high-pass and low-pass
         high_pass = self.apply_high_pass_filter(image)
         low_pass = self.apply_low_pass_filter(image)
@@ -716,7 +712,7 @@ class AdvancedQRDecoder:
         return band_pass
     
     def apply_notch_filter(self, image: np.ndarray) -> np.ndarray:
-        """Apply notch filter to remove specific frequencies"""
+        """Apply notch filter to remove specific frequencies."""
         f_transform = np.fft.fft2(image)
         f_shift = np.fft.fftshift(f_transform)
         
@@ -743,7 +739,7 @@ class AdvancedQRDecoder:
         return np.clip(img_back, 0, 255).astype(np.uint8)
     
     def template_matching_decode(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Template matching and pattern-based enhancement"""
+        """Template matching and pattern-based enhancement."""
         
         gray = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2GRAY)
         
@@ -774,7 +770,7 @@ class AdvancedQRDecoder:
         return None
     
     def create_qr_templates(self) -> List[np.ndarray]:
-        """Create QR code finder pattern templates"""
+        """Create QR finder pattern templates."""
         templates = []
         
         # Create basic finder pattern template
@@ -795,7 +791,7 @@ class AdvancedQRDecoder:
         return templates
     
     def enhance_around_matches(self, image: np.ndarray, locations: Tuple, template_shape: Tuple) -> np.ndarray:
-        """Enhance image around template matches"""
+        """Enhance image around template matches."""
         enhanced = image.copy()
         h, w = template_shape
         
@@ -811,7 +807,7 @@ class AdvancedQRDecoder:
         return enhanced
     
     def machine_learning_enhance_decode(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """ML-based enhancement (simplified without external models)"""
+        """ML-inspired enhancement (no external models)."""
         
         # This would typically use trained models, but we'll use advanced heuristics
         gray = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2GRAY)

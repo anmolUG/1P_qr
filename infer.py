@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Inference script for QR code detection and decoding
-"""
+"""Inference for QR detection and optional decoding (fast pipeline)."""
 
 import os
 import sys
@@ -13,15 +11,9 @@ import logging
 # Add src to path
 sys.path.append(str(Path(__file__).parent / "src"))
 
-try:
-    from models.qr_detector import QRDetector
-    from utils.qr_decoder_advanced import AdvancedQRDecoder
-    ADVANCED_DECODER_AVAILABLE = True
-except ImportError as e:
-    print(f"Advanced decoder not available: {e}")
-    from models.qr_detector import QRDetector
-    from utils.qr_decoder import QRDecoder
-    ADVANCED_DECODER_AVAILABLE = False
+from models.qr_detector import QRDetector
+from utils.qr_decoder_fast import FastQRDecoder
+from utils.qr_decoder import QRDecoder as BackupQRDecoder
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -51,14 +43,10 @@ class QRInference:
             else:
                 logger.warning("No trained model found, using default YOLOv8")
         
-        # Initialize decoder
-        if ADVANCED_DECODER_AVAILABLE:
-            self.decoder = AdvancedQRDecoder()
-            logger.info("Using advanced QR decoder")
-        else:
-            from utils.qr_decoder import QRDecoder
-            self.decoder = QRDecoder()
-            logger.info("Using standard QR decoder")
+        # Initialize decoders: fast primary + lightweight backup
+        self.decoder = FastQRDecoder()
+        self.backup_decoder = BackupQRDecoder()
+        logger.info("Using fast QR decoder with backup fallback")
     
     def calculate_iou(self, bbox1: list, bbox2: list) -> float:
         """
@@ -230,10 +218,7 @@ class QRInference:
         return filtered_detections
     
     def detect_qr_codes(self, image_path: str) -> list:
-        """
-        Multi-strategy QR detection approach to capture maximum QR codes.
-        Combines multiple detection passes with different parameters and consolidates results.
-        """
+        """Two-pass detection (balanced + sensitive) with light filtering."""
         try:
             import cv2
             # Read image
@@ -243,72 +228,73 @@ class QRInference:
                 return []
             
             all_detections = []
-            
-            # Strategy 1: Balanced detection (proven parameters)
-            results1 = self.detector.predict(image, conf=0.25, iou=0.4, verbose=False)
-            if results1 and len(results1) > 0:
-                detections1 = results1[0].get('detections', [])
-                all_detections.extend(detections1)
-            
-            # Strategy 2: Sensitive detection (lower confidence)
-            results2 = self.detector.predict(image, conf=0.18, iou=0.35, verbose=False)
-            if results2 and len(results2) > 0:
-                detections2 = results2[0].get('detections', [])
-                all_detections.extend(detections2)
-            
-            # Strategy 3: Very sensitive detection (lowest confidence)
-            results3 = self.detector.predict(image, conf=0.15, iou=0.3, verbose=False)
-            if results3 and len(results3) > 0:
-                detections3 = results3[0].get('detections', [])
-                all_detections.extend(detections3)
-            
-            # Remove duplicates with moderate threshold to consolidate results
+
+            # Pass 1: balanced (good precision)
+            r1 = self.detector.predict(image, conf=0.25, iou=0.4, verbose=False)
+            if r1 and len(r1) > 0:
+                all_detections.extend(r1[0].get('detections', []))
+
+            # Pass 2: sensitive (recall boost)
+            r2 = self.detector.predict(image, conf=0.18, iou=0.35, verbose=False)
+            if r2 and len(r2) > 0:
+                all_detections.extend(r2[0].get('detections', []))
+
+            # De-duplicate
             unique_detections = self.remove_duplicate_detections(all_detections, iou_threshold=0.35)
-            
-            # Apply minimal filtering to remove obvious false positives
-            filtered_detections = self.filter_minimal_false_positives(unique_detections, image)
-            logger.debug(f"Multi-strategy detection found {len(filtered_detections)} QR codes in {Path(image_path).name}")
+
+            # Minimal filtering
+            filtered_detections = []
+            h, w = image.shape[:2]
+            for det in unique_detections:
+                x1, y1, x2, y2 = det['bbox']
+                if x2 - x1 < 10 or y2 - y1 < 10:
+                    continue
+                if x2 - x1 > 0.95 * w or y2 - y1 > 0.95 * h:
+                    continue
+                filtered_detections.append(det)
+
+            logger.debug(f"Fast detection found {len(filtered_detections)} QR codes in {Path(image_path).name}")
             return filtered_detections
         except Exception as e:
             logger.error(f"Detection failed for {image_path}: {e}")
             return []
     
     def decode_qr_codes(self, image_path: str, detections: list) -> list:
-        """Decode detected QR codes"""
+        """Decode using fast batch; fill misses with backup decoder."""
         if not detections:
             return []
-        
         try:
             import cv2
-            # Read image
             image = cv2.imread(image_path)
             if image is None:
                 return []
-            
-            # Convert to RGB for decoder
             image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            
-            decoded_results = []
-            
-            for detection in detections:
-                bbox = detection['bbox']
-                
-                # Decode QR code
-                decoded_value = self.decoder.decode_qr_from_region(image_rgb, bbox, enhance=True)
-                
-                # Create result
-                qr_result = {
-                    "bbox": bbox,
-                    "value": decoded_value.strip() if decoded_value else "",
-                }
-                
-                decoded_results.append(qr_result)
-            
-            return decoded_results
-            
+
+            bboxes = [d['bbox'] for d in detections]
+
+            # Fast batch decode first
+            try:
+                fast_values = self.decoder.decode_multiple_regions(image_rgb, bboxes, enhance=True)
+            except Exception:
+                fast_values = []
+                for bbox in bboxes:
+                    v = self.decoder.decode_qr_from_region(image_rgb, bbox, enhance=True)
+                    fast_values.append(v if v else "")
+
+            # Fill empties with lightweight backup
+            filled_values = []
+            for v, bbox in zip(fast_values, bboxes):
+                if v:
+                    filled_values.append(v.strip())
+                else:
+                    vb = self.backup_decoder.decode_qr_from_region(image_rgb, bbox, enhance=False)
+                    if not vb:
+                        vb = self.backup_decoder.decode_qr_from_region(image_rgb, bbox, enhance=True)
+                    filled_values.append(vb.strip() if vb else "")
+
+            return [{"bbox": bbox, "value": val} for bbox, val in zip(bboxes, filled_values)]
         except Exception as e:
             logger.error(f"Decoding failed for {image_path}: {e}")
-            # Return detections without decoding
             return [{"bbox": det["bbox"], "value": ""} for det in detections]
     
     def process_single_image(self, image_path: str, decode: bool = False) -> dict:

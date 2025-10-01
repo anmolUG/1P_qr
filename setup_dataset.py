@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Script to help set up the dataset for the QR code detection system
-"""
+"""Dataset setup helper script."""
 
 import os
 import sys

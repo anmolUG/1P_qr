@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Complete pipeline script to run detection and visualization in one command
-"""
+"""Run detection and visualization in one command."""
 
 import subprocess
 import sys

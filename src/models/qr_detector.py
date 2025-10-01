@@ -1,6 +1,4 @@
-"""
-QR Detection Model using YOLOv8
-"""
+"""QR detection model wrapper using YOLOv8."""
 
 import torch
 import torch.nn as nn
@@ -18,14 +16,7 @@ class QRDetector:
                  model_size: str = 'n',  # n, s, m, l, x
                  num_classes: int = 1,   # QR code class
                  device: str = 'auto'):
-        """
-        Initialize QR Detector
-        
-        Args:
-            model_size: YOLOv8 model size (nano, small, medium, large, xlarge)
-            num_classes: Number of classes (1 for QR codes)
-            device: Device to run on ('auto', 'cpu', 'cuda', etc.)
-        """
+        """Initialize QR detector wrapper."""
         self.model_size = model_size
         self.num_classes = num_classes
         self.device = device
@@ -41,7 +32,7 @@ class QRDetector:
         self.max_detections = 100
         
     def load_pretrained(self, weights_path: Optional[str] = None):
-        """Load pretrained YOLOv8 model"""
+        """Load pretrained YOLOv8 model."""
         if weights_path and Path(weights_path).exists():
             self.logger.info(f"Loading custom weights from {weights_path}")
             self.model = YOLO(weights_path)
@@ -57,7 +48,7 @@ class QRDetector:
                 self._modify_model_classes()
     
     def _modify_model_classes(self):
-        """Modify model for custom number of classes"""
+        """Modify model for custom number of classes."""
         # This will be handled during training configuration
         pass
     
@@ -69,18 +60,7 @@ class QRDetector:
               save_dir: str = 'runs/train',
               resume: bool = False,
               **kwargs):
-        """
-        Train the QR detection model
-        
-        Args:
-            train_data_yaml: Path to data.yaml file
-            epochs: Number of training epochs
-            batch_size: Training batch size
-            img_size: Input image size
-            save_dir: Directory to save results
-            resume: Resume from last checkpoint
-            **kwargs: Additional training arguments
-        """
+        """Train the model with given YOLO args."""
         if self.model is None:
             self.load_pretrained()
         
@@ -118,19 +98,7 @@ class QRDetector:
                 iou: float = None,
                 save: bool = False,
                 **kwargs) -> List[Dict[str, Any]]:
-        """
-        Run inference on images
-        
-        Args:
-            source: Image source (path, array, etc.)
-            conf: Confidence threshold
-            iou: IoU threshold for NMS
-            save: Save results
-            **kwargs: Additional prediction arguments
-            
-        Returns:
-            List of detection results
-        """
+        """Run inference and return processed detections list."""
         if self.model is None:
             raise ValueError("Model not loaded. Call load_pretrained() first.")
         
@@ -161,7 +129,7 @@ class QRDetector:
         return processed_results
     
     def _process_result(self, result) -> Dict[str, Any]:
-        """Process a single prediction result"""
+        """Process a single prediction result."""
         detections = []
         
         if result.boxes is not None:
@@ -186,7 +154,7 @@ class QRDetector:
         }
     
     def validate(self, data_yaml: str, **kwargs):
-        """Validate model performance"""
+        """Validate model performance."""
         if self.model is None:
             raise ValueError("Model not loaded. Call load_pretrained() first.")
         
@@ -196,7 +164,7 @@ class QRDetector:
         return results
     
     def export(self, format: str = 'onnx', **kwargs):
-        """Export model to different formats"""
+        """Export model to different formats."""
         if self.model is None:
             raise ValueError("Model not loaded. Call load_pretrained() first.")
         
@@ -207,7 +175,7 @@ class QRDetector:
                            conf_threshold: float = None,
                            iou_threshold: float = None,
                            max_detections: int = None):
-        """Set detection parameters"""
+        """Set detection parameters."""
         if conf_threshold is not None:
             self.conf_threshold = conf_threshold
         if iou_threshold is not None:
@@ -216,16 +184,7 @@ class QRDetector:
             self.max_detections = max_detections
     
     def detect_from_image(self, image: np.ndarray, return_image: bool = False) -> Dict[str, Any]:
-        """
-        Detect QR codes from a single image array
-        
-        Args:
-            image: Input image (RGB format)
-            return_image: Whether to return annotated image
-            
-        Returns:
-            Detection results
-        """
+        """Detect QR codes from a single RGB image array."""
         # Convert RGB to BGR for YOLO
         bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         
@@ -248,7 +207,7 @@ class QRDetector:
         }
     
     def _annotate_image(self, image: np.ndarray, detections: List[Dict[str, Any]]) -> np.ndarray:
-        """Annotate image with detection results"""
+        """Annotate image with detection results."""
         for detection in detections:
             bbox = detection['bbox']
             confidence = detection['confidence']
@@ -269,7 +228,7 @@ class QRDetector:
         return image
     
     def benchmark_speed(self, image_size: Tuple[int, int] = (640, 640), num_runs: int = 100):
-        """Benchmark inference speed"""
+        """Benchmark inference speed."""
         if self.model is None:
             raise ValueError("Model not loaded. Call load_pretrained() first.")
         
@@ -303,7 +262,7 @@ class QRDetector:
         }
 
 def create_data_yaml(train_dir: str, val_dir: str, save_path: str):
-    """Create data.yaml file for YOLO training"""
+    """Create data.yaml file for YOLO training."""
     import os
     
     # Use absolute paths for YOLO
@@ -334,7 +293,7 @@ def convert_annotations_to_yolo(annotations_file: str,
                                images_dir: str,
                                output_dir: str,
                                image_size: Tuple[int, int] = (640, 640)):
-    """Convert JSON annotations to YOLO format"""
+    """Convert JSON annotations to YOLO format."""
     import json
     from pathlib import Path
     

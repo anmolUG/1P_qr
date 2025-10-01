@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Training script for QR detection model
-"""
+"""Training script for QR detection model."""
 
 import argparse
 import os

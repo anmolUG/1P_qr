@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-QR Detection Evaluation and Visualization Script
-Visualizes detection results with bounding boxes for verification
-"""
+"""Evaluation and visualization for QR detections."""
 
 import cv2
 import json

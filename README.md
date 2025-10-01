@@ -35,8 +35,8 @@ pip install -r requirements.txt
 ```
 
 ### Step 2: Prepare Test Images
-1. Download the dataset from the provided link
-2. Extract the test images (50 images)
+1. Download the dataset 
+2. Extract the test images 
 3. Place all test images in the `data/test_images/` directory
 
 Supported image formats:
@@ -126,7 +126,7 @@ Expected output format:
 ]
 ```
 
-### Visualization
+### Advanced Visualization
 Command:
 ```bash
 python improved_visualization.py --input data/test_images --detection outputs/submission_detection_1.json --decoding outputs/submission_decoding_2.json --output outputs/visualizations

@@ -1,6 +1,4 @@
-"""
-Utility functions for QR code detection and processing
-"""
+"""Utility functions for QR detection and processing."""
 
 import cv2
 import numpy as np
@@ -10,7 +8,7 @@ from pathlib import Path
 import logging
 
 def setup_logging(level=logging.INFO):
-    """Setup logging configuration"""
+    """Setup logging configuration."""
     logging.basicConfig(
         level=level,
         format='%(asctime)s - %(levelname)s - %(message)s',
@@ -21,24 +19,24 @@ def setup_logging(level=logging.INFO):
     )
 
 def load_image(image_path: str) -> np.ndarray:
-    """Load and preprocess image"""
+    """Load and preprocess image."""
     image = cv2.imread(image_path)
     if image is None:
         raise ValueError(f"Could not load image: {image_path}")
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 def save_json(data: Dict[str, Any], filepath: str):
-    """Save data to JSON file"""
+    """Save data to JSON file."""
     with open(filepath, 'w') as f:
         json.dump(data, f, indent=2)
 
 def load_json(filepath: str) -> Dict[str, Any]:
-    """Load data from JSON file"""
+    """Load data from JSON file."""
     with open(filepath, 'r') as f:
         return json.load(f)
 
 def calculate_iou(box1: List[float], box2: List[float]) -> float:
-    """Calculate Intersection over Union (IoU) between two bounding boxes"""
+    """Calculate Intersection over Union (IoU) between two boxes."""
     x1_min, y1_min, x1_max, y1_max = box1
     x2_min, y2_min, x2_max, y2_max = box2
     
@@ -61,7 +59,7 @@ def calculate_iou(box1: List[float], box2: List[float]) -> float:
     return intersection / union if union > 0 else 0.0
 
 def apply_nms(boxes: List[List[float]], scores: List[float], threshold: float = 0.5) -> List[int]:
-    """Apply Non-Maximum Suppression"""
+    """Apply Non-Maximum Suppression."""
     if len(boxes) == 0:
         return []
     
@@ -81,7 +79,7 @@ def apply_nms(boxes: List[List[float]], scores: List[float], threshold: float = 
     return keep
 
 def preprocess_image_for_detection(image: np.ndarray, size: Tuple[int, int] = (640, 640)) -> np.ndarray:
-    """Preprocess image for object detection"""
+    """Preprocess image for object detection."""
     # Resize while maintaining aspect ratio
     h, w = image.shape[:2]
     scale = min(size[0] / w, size[1] / h)
@@ -100,7 +98,7 @@ def preprocess_image_for_detection(image: np.ndarray, size: Tuple[int, int] = (6
 
 def postprocess_detections(detections: np.ndarray, scale: float, padding: Tuple[int, int], 
                          conf_threshold: float = 0.5) -> List[Dict[str, Any]]:
-    """Postprocess detection results"""
+    """Postprocess detection results."""
     results = []
     pad_w, pad_h = padding
     
@@ -132,7 +130,7 @@ def postprocess_detections(detections: np.ndarray, scale: float, padding: Tuple[
     return results
 
 def augment_image(image: np.ndarray, rotation_range: int = 15, brightness_range: float = 0.2) -> np.ndarray:
-    """Apply data augmentation to image"""
+    """Apply data augmentation to image."""
     h, w = image.shape[:2]
     
     # Random rotation
@@ -148,7 +146,7 @@ def augment_image(image: np.ndarray, rotation_range: int = 15, brightness_range:
 
 def create_submission_format(detections: List[Dict[str, Any]], image_id: str, 
                            include_values: bool = False) -> Dict[str, Any]:
-    """Create submission format for hackathon"""
+    """Create submission format for hackathon."""
     qrs = []
     for detection in detections:
         qr_data = {'bbox': detection['bbox']}
@@ -162,7 +160,7 @@ def create_submission_format(detections: List[Dict[str, Any]], image_id: str,
     }
 
 def validate_submission_format(submission_data: List[Dict[str, Any]], stage: int = 1) -> bool:
-    """Validate submission format"""
+    """Validate submission format."""
     required_keys = ['image_id', 'qrs']
     
     for entry in submission_data:

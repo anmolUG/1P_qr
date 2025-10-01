@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""
-Enhanced QR Detection System with Multi-Threshold Fusion
-This system uses multiple confidence thresholds and IoU-based duplicate removal 
-to maximize detection recall while maintaining accuracy.
-"""
+"""Enhanced QR detection with multi-threshold fusion and IoU-based de-dup."""
 
 import os
 import sys
@@ -65,16 +61,7 @@ class EnhancedQRDetector:
             logger.info("Using standard QR decoder")
     
     def calculate_iou(self, bbox1: list, bbox2: list) -> float:
-        """
-        Calculate Intersection over Union (IoU) between two bounding boxes
-        
-        Args:
-            bbox1: [x_min, y_min, x_max, y_max]
-            bbox2: [x_min, y_min, x_max, y_max]
-            
-        Returns:
-            IoU value between 0 and 1
-        """
+        """Compute IoU between two boxes [x_min, y_min, x_max, y_max]."""
         try:
             x1_min, y1_min, x1_max, y1_max = bbox1
             x2_min, y2_min, x2_max, y2_max = bbox2
@@ -98,16 +85,7 @@ class EnhancedQRDetector:
             return 0
     
     def remove_duplicate_detections(self, detections: list, iou_threshold: float = 0.3) -> list:
-        """
-        Remove duplicate detections using IoU-based filtering with confidence prioritization
-        
-        Args:
-            detections: List of detection dictionaries with 'bbox' and 'confidence' keys
-            iou_threshold: IoU threshold for considering detections as duplicates
-            
-        Returns:
-            List of unique detections
-        """
+        """Remove duplicates via IoU threshold with confidence priority."""
         if not detections:
             return []
         
@@ -137,15 +115,7 @@ class EnhancedQRDetector:
         return unique_detections
     
     def detect_qr_codes_enhanced(self, image_path: str) -> list:
-        """
-        Enhanced QR detection using multi-threshold strategy for maximum coverage
-        Implements the multi-threshold detection fusion approach:
-        - Strategy 1: High confidence (0.3) for reliable detections
-        - Strategy 2: Medium confidence (0.15) for potentially missed QRs
-        - Strategy 3: Low confidence (0.1) for aggressive detection
-        - Strategy 4: Very low confidence (0.05) for edge cases
-        - Combined with conservative IoU-based duplicate removal (0.3 threshold)
-        """
+        """Multi-threshold detection with IoU-based consolidation."""
         try:
             # Read image
             image = cv2.imread(image_path)
@@ -198,7 +168,7 @@ class EnhancedQRDetector:
             return []
     
     def detect_qr_codes_baseline(self, image_path: str) -> list:
-        """Baseline detection method (single threshold)"""
+        """Baseline detection (single threshold)."""
         try:
             # Read image
             image = cv2.imread(image_path)
@@ -222,7 +192,7 @@ class EnhancedQRDetector:
             return []
     
     def process_single_image(self, image_path: str, use_enhanced: bool = True) -> dict:
-        """Process a single image for QR detection"""
+        """Process a single image for QR detection."""
         image_id = Path(image_path).stem
         
         # Detect QR codes
@@ -240,7 +210,7 @@ class EnhancedQRDetector:
         }
     
     def process_directory(self, input_dir: str, output_file: str, use_enhanced: bool = True) -> dict:
-        """Process all images in a directory"""
+        """Process all images in a directory."""
         input_path = Path(input_dir)
         if not input_path.exists() or not input_path.is_dir():
             raise ValueError(f"Input directory does not exist: {input_dir}")

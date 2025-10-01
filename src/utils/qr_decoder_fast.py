@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Fast QR Code Decoder
-Optimized for speed while maintaining good accuracy
-"""
+"""Fast QR decoder optimized for speed and good accuracy."""
 
 import cv2
 import numpy as np
@@ -13,7 +10,7 @@ import time
 logger = logging.getLogger(__name__)
 
 class FastQRDecoder:
-    """Fast QR decoder with optimized processing pipeline"""
+    """Fast QR decoder with optimized pipeline."""
     
     def __init__(self):
         self.detector = cv2.QRCodeDetector()

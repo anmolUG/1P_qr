@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Visualization script for QR code detections
-"""
+"""Visualization for QR code detections."""
 
 import cv2
 import json

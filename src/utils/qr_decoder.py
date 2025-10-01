@@ -1,6 +1,4 @@
-"""
-QR Code decoding and classification utilities
-"""
+"""QR decoding and classification utilities."""
 
 import cv2
 import numpy as np
@@ -10,7 +8,7 @@ import re
 import logging
 
 class QRDecoder:
-    """QR Code decoder and classifier"""
+    """QR decoder and classifier."""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -49,17 +47,7 @@ class QRDecoder:
     
     def decode_qr_from_region(self, image: np.ndarray, bbox: List[int], 
                              enhance: bool = True) -> Optional[str]:
-        """
-        Decode QR code from a specific region of the image
-        
-        Args:
-            image: Input image (RGB format)
-            bbox: Bounding box [x_min, y_min, x_max, y_max]
-            enhance: Whether to apply image enhancement
-            
-        Returns:
-            Decoded QR value or None if decoding fails
-        """
+        """Decode QR from an image region [x_min, y_min, x_max, y_max]."""
         try:
             x_min, y_min, x_max, y_max = bbox
             
@@ -128,7 +116,7 @@ class QRDecoder:
             return None
     
     def _enhance_qr_region(self, roi: np.ndarray) -> np.ndarray:
-        """Enhance QR region for better decoding"""
+        """Enhance QR region for better decoding."""
         # Convert to grayscale
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         
@@ -148,7 +136,7 @@ class QRDecoder:
         return cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
     
     def _decode_with_multiple_preprocessing(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Try decoding with multiple advanced preprocessing techniques"""
+        """Try decoding with multiple preprocessing techniques."""
         gray = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2GRAY)
         
         # Advanced preprocessing approaches
@@ -217,7 +205,7 @@ class QRDecoder:
         return None
     
     def _decode_with_perspective_correction(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Try to correct perspective distortion and decode"""
+        """Try perspective correction and decode."""
         try:
             gray = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2GRAY)
             
@@ -255,7 +243,7 @@ class QRDecoder:
             return None
     
     def _decode_with_contour_refinement(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Refine QR region using contour detection"""
+        """Refine QR region using contour detection."""
         try:
             gray = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2GRAY)
             
@@ -291,7 +279,7 @@ class QRDecoder:
             return None
     
     def _decode_with_extreme_enhancement(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Apply extreme enhancement techniques for challenging QR codes"""
+        """Extreme enhancement techniques for challenging QRs."""
         try:
             gray = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2GRAY)
             
@@ -336,20 +324,20 @@ class QRDecoder:
             return None
     
     def _gamma_correction(self, image: np.ndarray, gamma: float) -> np.ndarray:
-        """Apply gamma correction"""
+        """Apply gamma correction."""
         inv_gamma = 1.0 / gamma
         table = np.array([(i / 255.0) ** inv_gamma * 255 for i in range(256)]).astype(np.uint8)
         return cv2.LUT(image, table)
     
     def _enhance_edges(self, image: np.ndarray) -> np.ndarray:
-        """Enhance edges using Laplacian filter"""
+        """Enhance edges using Laplacian filter."""
         laplacian = cv2.Laplacian(image, cv2.CV_64F)
         laplacian = np.uint8(np.absolute(laplacian))
         enhanced = cv2.addWeighted(image, 0.7, laplacian, 0.3, 0)
         return enhanced
     
     def _denoise_and_sharpen(self, image: np.ndarray) -> np.ndarray:
-        """Apply denoising followed by sharpening"""
+        """Apply denoising followed by sharpening."""
         # Denoise
         denoised = cv2.fastNlMeansDenoising(image)
         
@@ -360,13 +348,13 @@ class QRDecoder:
         return sharpened
     
     def _unsharp_mask(self, image: np.ndarray) -> np.ndarray:
-        """Apply unsharp masking for edge enhancement"""
+        """Apply unsharp masking for edge enhancement."""
         gaussian = cv2.GaussianBlur(image, (5, 5), 1.0)
         unsharp = cv2.addWeighted(image, 1.5, gaussian, -0.5, 0)
         return cv2.threshold(unsharp, 127, 255, cv2.THRESH_BINARY)[1]
     
     def _decode_with_opencv(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """OpenCV QR code decoding with enhanced error handling"""
+        """OpenCV QR decoding with enhanced error handling."""
         try:
             detector = cv2.QRCodeDetector()
             
@@ -399,12 +387,12 @@ class QRDecoder:
             return None
     
     def _decode_with_pyzbar(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Standard pyzbar decoding - disabled on Windows"""
+        """pyzbar decoding (disabled on Windows)."""
         # Disabled due to Windows DLL compatibility issues
         return None
     
     def _decode_with_rotation(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Try decoding with comprehensive rotation angles"""
+        """Try decoding with comprehensive rotation angles."""
         # More comprehensive rotation angles including fine adjustments
         angles = [0, 45, 90, 135, 180, 225, 270, 315, -45, -90, -135]
         
@@ -433,7 +421,7 @@ class QRDecoder:
         return None
     
     def _decode_with_scaling(self, roi_bgr: np.ndarray) -> Optional[str]:
-        """Try decoding with comprehensive scaling and interpolation methods"""
+        """Try decoding with scaling and interpolation variants."""
         # More comprehensive scaling factors
         scales = [0.3, 0.5, 0.7, 1.0, 1.2, 1.5, 2.0, 2.5, 3.0, 4.0]
         
@@ -466,15 +454,7 @@ class QRDecoder:
         return None
     
     def classify_qr_content(self, qr_value: str) -> str:
-        """
-        Classify QR content based on patterns
-        
-        Args:
-            qr_value: Decoded QR string
-            
-        Returns:
-            Classification type
-        """
+        """Classify QR content based on patterns."""
         if not qr_value:
             return 'unknown'
         
@@ -502,16 +482,7 @@ class QRDecoder:
         return 'unknown'
     
     def process_multiple_qrs(self, image: np.ndarray, detections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Process multiple QR detections in an image
-        
-        Args:
-            image: Input image (RGB format)
-            detections: List of detection results with bboxes
-            
-        Returns:
-            Updated detections with decoded values and classifications
-        """
+        """Process detections and attach decoded values/classifications."""
         enhanced_detections = []
         
         for detection in detections:
@@ -535,16 +506,7 @@ class QRDecoder:
         return enhanced_detections
     
     def validate_qr_detection(self, image: np.ndarray, bbox: List[int]) -> bool:
-        """
-        Validate if a bounding box likely contains a QR code
-        
-        Args:
-            image: Input image
-            bbox: Bounding box to validate
-            
-        Returns:
-            True if likely contains QR code
-        """
+        """Heuristically validate if a bbox likely contains a QR code."""
         try:
             x_min, y_min, x_max, y_max = bbox
             roi = image[y_min:y_max, x_min:x_max]

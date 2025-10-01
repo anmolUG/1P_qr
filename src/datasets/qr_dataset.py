@@ -1,6 +1,4 @@
-"""
-Dataset utilities for QR detection training
-"""
+"""Dataset utilities for QR detection training."""
 
 import os
 import json
@@ -15,7 +13,7 @@ from albumentations.pytorch import ToTensorV2
 import logging
 
 class QRDataset(Dataset):
-    """Dataset class for QR detection training"""
+    """Dataset class for QR detection training."""
     
     def __init__(self, 
                  images_dir: str,
@@ -23,16 +21,7 @@ class QRDataset(Dataset):
                  image_size: Tuple[int, int] = (640, 640),
                  augmentations: Optional[A.Compose] = None,
                  mode: str = 'train'):
-        """
-        Initialize QR Dataset
-        
-        Args:
-            images_dir: Directory containing images
-            annotations_file: Path to annotations JSON file
-            image_size: Target image size (width, height)
-            augmentations: Albumentations transform pipeline
-            mode: 'train', 'val', or 'test'
-        """
+        """Initialize dataset with paths, size, augmentations, mode."""
         self.images_dir = Path(images_dir)
         self.image_size = image_size
         self.mode = mode
@@ -49,7 +38,7 @@ class QRDataset(Dataset):
             self.augmentations = augmentations
     
     def _load_annotations(self, annotations_file: str) -> Dict[str, List[Dict[str, Any]]]:
-        """Load annotations from JSON file"""
+        """Load annotations from JSON file."""
         try:
             with open(annotations_file, 'r') as f:
                 data = json.load(f)
@@ -68,7 +57,7 @@ class QRDataset(Dataset):
             raise
     
     def _get_default_augmentations(self) -> A.Compose:
-        """Get default augmentation pipeline"""
+        """Default augmentation pipeline."""
         if self.mode == 'train':
             return A.Compose([
                 A.HorizontalFlip(p=0.5),
@@ -92,7 +81,7 @@ class QRDataset(Dataset):
         return len(self.image_ids)
     
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        """Get dataset item"""
+        """Get dataset item."""
         image_id = self.image_ids[idx]
         
         # Load image
@@ -159,7 +148,7 @@ class QRDataset(Dataset):
         }
     
     def _convert_to_yolo_format(self, bboxes: List[List[float]], labels: List[int]) -> torch.Tensor:
-        """Convert bounding boxes to YOLO format"""
+        """Convert bounding boxes to YOLO format."""
         yolo_targets = []
         
         for bbox, label in zip(bboxes, labels):
@@ -176,7 +165,7 @@ class QRDataset(Dataset):
         return torch.tensor(yolo_targets, dtype=torch.float32)
 
 class QRDataModule:
-    """Data module for organizing train/val/test datasets"""
+    """Data module for organizing train/val/test datasets."""
     
     def __init__(self,
                  train_images_dir: str,
@@ -202,7 +191,7 @@ class QRDataModule:
         self.test_dataset = None
     
     def setup(self):
-        """Setup datasets"""
+        """Setup datasets."""
         # Training dataset with augmentations
         train_augmentations = A.Compose([
             A.HorizontalFlip(p=0.5),
@@ -249,7 +238,7 @@ class QRDataModule:
             )
     
     def train_dataloader(self) -> DataLoader:
-        """Get training dataloader"""
+        """Get training dataloader."""
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
@@ -260,7 +249,7 @@ class QRDataModule:
         )
     
     def val_dataloader(self) -> DataLoader:
-        """Get validation dataloader"""
+        """Get validation dataloader."""
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
@@ -271,7 +260,7 @@ class QRDataModule:
         )
     
     def test_dataloader(self) -> DataLoader:
-        """Get test dataloader"""
+        """Get test dataloader."""
         if self.test_dataset is None:
             return None
         
@@ -285,7 +274,7 @@ class QRDataModule:
         )
     
     def _collate_fn(self, batch: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Custom collate function for batching"""
+        """Custom collate function for batching."""
         images = torch.stack([item['image'] for item in batch])
         
         # Handle variable number of targets per image
@@ -313,7 +302,7 @@ class QRDataModule:
         }
 
 def create_sample_annotations(images_dir: str, output_file: str):
-    """Create sample annotations file for testing"""
+    """Create sample annotations file for testing."""
     import glob
     
     images_dir = Path(images_dir)
