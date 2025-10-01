@@ -129,19 +129,22 @@ Expected output format:
 ### Visualization
 Command:
 ```bash
-python visualize_detections.py --input data/test_images --json outputs/submission_detection_1.json --output outputs/visualizations
+python improved_visualization.py --input data/test_images --detection outputs/submission_detection_1.json --decoding outputs/submission_decoding_2.json --output outputs/visualizations
 ```
 
 Parameters:
 - `--input`: Path to directory containing test images
-- `--json`: Path to the JSON file with detection results
+- `--detection`: Path to the JSON file with detection results
+- `--decoding`: Path to the JSON file with decoding results
 - `--output`: Path to output directory for visualization images
 
 Visualization features:
-- Bold red borders around detected QR codes
-- Sequential QR numbering (QR 1, QR 2, etc.)
-- Bounding box coordinates at corners
-- Professional progress tracking
+- Extremely thick borders (10px) for better visibility
+- Larger font sizes for all text elements
+- No bounding box coordinates for cleaner look
+- Detection results shown in blue, decoding results in red
+- Enhanced legend and summary information
+
 
 ## Output Files
 
